@@ -3,34 +3,74 @@
 <head>
   <meta charset="UTF-8">
   <title>睡眠助理小幫手</title>
+  <style>
+    body {
+      font-family: "Microsoft JhengHei", sans-serif;
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.8;
+    }
+    textarea {
+      width: 100%;
+      font-size: 1em;
+    }
+    button {
+      font-size: 1em;
+      padding: 8px 16px;
+      margin-top: 12px;
+    }
+    pre {
+      background: #f9f9f9;
+      padding: 15px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      border-left: 4px solid #bbb;
+    }
+    .loading {
+      color: #888;
+    }
+  </style>
 </head>
 <body>
   <h2>請輸入你的睡眠狀況：</h2>
-  <textarea id="userInput" rows="6" cols="50" placeholder="例如：我最近都睡不到 5 小時..."></textarea><br><br>
+  <textarea id="userInput" rows="6" placeholder="例如：我最近都睡不到 5 小時..."></textarea><br>
   <button onclick="sendInput()">送出分析</button>
 
   <h3>分析結果：</h3>
-  <pre id="resultOutput"></pre>
+  <pre id="resultOutput">（等待分析中...）</pre>
 
   <script>
     async function sendInput() {
-      const userInput = document.getElementById("userInput").value;
+      const userInput = document.getElementById("userInput").value.trim();
       const resultArea = document.getElementById("resultOutput");
 
-      const response = await fetch("https://sleep.zeabur.app/webhook/c8f29e8a-3796-43f8-940a-23b061039ff2", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_input: userInput })
-      });
+      if (!userInput) {
+        resultArea.textContent = "⚠️ 請先輸入睡眠描述";
+        return;
+      }
 
-      const text = await response.text();
-try {
-  const data = JSON.parse(text);
-  resultArea.textContent = data.result || JSON.stringify(data, null, 2);
-} catch (e) {
-  resultArea.textContent = "⚠️ 無法解析回應內容：\n" + text;
-}
+      resultArea.innerHTML = "<span class='loading'>⏳ 分析中，請稍候...</span>";
 
+      try {
+        const response = await fetch("https://sleep.zeabur.app/webhook/c8f29e8a-3796-43f8-940a-23b061039ff2", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_input: userInput })
+        });
+
+        const data = await response.json();
+
+        if (data.result) {
+          resultArea.innerHTML = data.result
+            .replace(/\n/g, "<br>")
+            .replace(/(https:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+        } else {
+          resultArea.textContent = "⚠️ 回應格式錯誤，找不到 result";
+        }
+      } catch (e) {
+        resultArea.textContent = "⚠️ 無法取得分析結果：" + e.message;
+      }
     }
   </script>
 </body>
