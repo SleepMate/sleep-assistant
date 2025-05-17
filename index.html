@@ -6,29 +6,20 @@
   <style>
     body {
       font-family: "Microsoft JhengHei", sans-serif;
-      max-width: 700px;
-      margin: 40px auto;
-      padding: 20px;
-      line-height: 1.8;
+      padding: 2rem;
     }
     textarea {
       width: 100%;
-      font-size: 1em;
+      font-size: 1rem;
     }
     button {
-      font-size: 1em;
-      padding: 8px 16px;
-      margin-top: 12px;
+      font-size: 1rem;
+      padding: 0.5rem 1rem;
+      margin-top: 0.5rem;
     }
-    pre {
-      background: #f9f9f9;
-      padding: 15px;
+    #resultOutput {
       white-space: pre-wrap;
-      word-wrap: break-word;
-      border-left: 4px solid #bbb;
-    }
-    .loading {
-      color: #888;
+      margin-top: 1rem;
     }
   </style>
 </head>
@@ -38,7 +29,7 @@
   <button onclick="sendInput()">送出分析</button>
 
   <h3>分析結果：</h3>
-  <pre id="resultOutput">（等待分析中...）</pre>
+  <pre id="resultOutput">尚未送出分析</pre>
 
   <script>
     async function sendInput() {
@@ -46,11 +37,11 @@
       const resultArea = document.getElementById("resultOutput");
 
       if (!userInput) {
-        resultArea.textContent = "⚠️ 請先輸入睡眠描述";
+        resultArea.textContent = "⚠️ 請先輸入一些內容再送出！";
         return;
       }
 
-      resultArea.innerHTML = "<span class='loading'>⏳ 分析中，請稍候...</span>";
+      resultArea.textContent = "🧠 睡眠助理正在分析中，請稍候...";
 
       try {
         const response = await fetch("https://sleep.zeabur.app/webhook/c8f29e8a-3796-43f8-940a-23b061039ff2", {
@@ -59,17 +50,16 @@
           body: JSON.stringify({ user_input: userInput })
         });
 
-        const data = await response.json();
+        const text = await response.text();
 
-        if (data.result) {
-          resultArea.innerHTML = data.result
-            .replace(/\n/g, "<br>")
-            .replace(/(https:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
-        } else {
-          resultArea.textContent = "⚠️ 回應格式錯誤，找不到 result";
+        try {
+          const data = JSON.parse(text);
+          resultArea.textContent = data.result || JSON.stringify(data, null, 2);
+        } catch (e) {
+          resultArea.textContent = "⚠️ 無法解析回應內容：\n\n" + text;
         }
-      } catch (e) {
-        resultArea.textContent = "⚠️ 無法取得分析結果：" + e.message;
+      } catch (error) {
+        resultArea.textContent = "❌ 發送請求失敗，請確認網路或伺服器狀態\n" + error;
       }
     }
   </script>
